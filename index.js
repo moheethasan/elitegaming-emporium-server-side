@@ -130,6 +130,13 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/products/featured", async (req, res) => {
+      const result = await productsCollection
+        .find({ total_sold: { $gt: 50 } })
+        .toArray();
+      res.send(result);
+    });
+
     app.get("/products/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
