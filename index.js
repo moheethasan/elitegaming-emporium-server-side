@@ -4,6 +4,7 @@ const cors = require("cors");
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const stripe = require("stripe")(process.env.PAYMENT_SECRET_KEY);
 const port = process.env.PORT || 5000;
 
 // middleware
@@ -102,11 +103,9 @@ async function run() {
       const user = req.body;
       const query = { email: user.email };
       const existingUser = await usersCollection.findOne(query);
-
       if (existingUser) {
         return res.send({ message: "user already exists" });
       }
-
       const result = await usersCollection.insertOne(user);
       res.send(result);
     });
@@ -134,6 +133,13 @@ async function run() {
       const result = await productsCollection
         .find({ total_sold: { $gt: 50 } })
         .toArray();
+      res.send(result);
+    });
+
+    app.get("/products/admin", verifyJWT, verifyAdmin, async (req, res) => {
+      const adminEmail = req.query.email;
+      const query = { admin_email: adminEmail };
+      const result = await productsCollection.find(query).toArray();
       res.send(result);
     });
 
@@ -209,7 +215,7 @@ async function run() {
       res.send(result);
     });
 
-    app.delete("/purchases/:id", verifyJWT, verifyAdmin, async (req, res) => {
+    app.delete("/purchases/:id", verifyJWT, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await purchasesCollection.deleteOne(query);
